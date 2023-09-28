@@ -6,6 +6,9 @@
 .RData
 .RDataTmp
 
+#large data file
+DEV309_Database.dta
+
 # User-specific files
 .Ruserdata
 
