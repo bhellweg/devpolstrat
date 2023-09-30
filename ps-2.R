@@ -1,3 +1,55 @@
+## Loading Libraries
+packages <- c(
+  #FOR BASIC DATA HANDLING
+  'plyr', #load this first so dplyr in tidyverse takes priority
+  'tidyverse',
+  'dplyr',
+  'janitor', #clean names
+  'tidyr', #reshaping
+  #FOR EXPORTING AND IMPORTING
+  'foreign',
+  'haven',
+  #FOR REG RESULTS
+  'modelsummary', #summarizing reg results
+  'sandwich', #robust estimators
+  'lmtest', #diagnostic checking
+  'car',
+  'broom',
+  'outreg',
+  'stargazer', #exporting to latex
+  #FOR NETWORK
+  'igraph',
+  'centiserve',
+  #FOR PLOTS AND AESTHETICS
+  'ggpubr',
+  'ggrepel', #text labels to not overlap
+  'ggnewscale', #multiple scales
+  'treemapify', #treemaps
+  'mekko', #mekko charts (variable width bar charts),
+  'qgraph', #q graphs
+  'RColorBrewer',
+  'pals', #color palettes
+  'viridis', #special color palettes
+  'ggthemes', #themes
+  'cowplot', #themes and other plot configs
+  'gridExtra', #putting multiple plots into grids
+  'gt', #table for heatmap
+  'webshot2', #for saving gt table as png
+  'scales',
+  'patchwork',
+  'ggbump', #putting multiple plots into grids  
+  #FOR COMPLEXITY
+  'economiccomplexity') 
+to_install <- packages[!(packages %in% installed.packages()[,"Package"])]
+if(length(to_install)>0) install.packages(to_install, 
+                                          repos='http://cran.us.r-project.org')
+lapply(packages, require, character.only=TRUE)
+
+
+## Loading Data
+df <- read_dta("input/country_sitcproduct4digit_year.dta")
+
+
 ## Question 1: Definitions
 # Define the following seven terms in your own words and describe how they relate to one another: RCA, Diversity, Average Ubiquity, ECI, PCI, Proximity, Density, COI and COG. 
 # 
