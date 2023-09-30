@@ -46,8 +46,55 @@ if(length(to_install)>0) install.packages(to_install,
 lapply(packages, require, character.only=TRUE)
 
 
+## Pick Year
+yr <- 2019
+
 ## Loading Data
-df <- read_dta("input/country_sitcproduct4digit_year.dta")
+#df <- read_dta("input/country_sitcproduct4digit_year.dta")
+
+#database <- read_dta("input/DEV309_Database.dta")
+
+df_exp <- df %>%
+  filter(year==yr) %>%
+  select(location_code, sitc_product_code, export_value)
+
+# # Constructing RCA matrix
+# df_rca <- df %>%
+#   filter(year==2019) %>%
+#   select(location_code, sitc_product_code, export_rca) %>%
+#   pivot_wider(names_from="sitc_product_code", values_from="export_rca")
+# 
+# row_name = df_rca$location_code
+# rca <- df_rca %>% select(-location_code) %>% as.matrix()
+# rownames(rca) = row_name
+# 
+# # Converting to Mcp matrix
+# rca[rca<1] <- 0
+# rca[rca>=1] <- 1
+# mcp <- rca
+# rm(rca)
+
+mcp <- balassa_index(
+  df_exp,
+  country="location_code",
+  product="sitc_product_code",
+  value="export_value"
+)
+
+complexity <- complexity_measures(
+  mcp
+)
+
+eci <- complexity$complexity_index_country
+pci <- complexity$complexity_index_product
+
+proximity <- proximity(mcp, compute="both")
+proximity_country <- proximity$proximity_country
+proximity_product <- proximity$proximity_product
+
+co <- complexity_outlook(mcp, proximity_product, pci)
+coi <- co$complexity_outlook_index
+cog <- co$complexity_outlook_gain
 
 
 ## Question 1: Definitions
@@ -77,7 +124,38 @@ df <- read_dta("input/country_sitcproduct4digit_year.dta")
 
 ##   Question 5: Your Country’s Strategic Position
 # Reproduce the “rock song chart” (COI vs. ECI controlling for Natural Resource exports/rents and GDP per capita). What’s the position of your country in the chart? What does this say about the policy stance that the country should take on the matter of economic development strategy?
-#   
+df_rocksong <- eci %>%
+  as.table() %>%
+  as.data.frame() %>%
+  as_tibble() %>%
+  rename(country=Var1,
+         eci=Freq) %>%
+  left_join(database %>%
+              filter(year==2019) %>%
+              rename(country=countrycodeiso) %>%
+              select(country, wdi_ny_gdp_pcap_kd, wdi_ny_gdp_totl_rt_zs, atl_sitc_coi),
+            by="country") %>%
+  rename(gdppc = wdi_ny_gdp_pcap_kd,
+         natrent = wdi_ny_gdp_totl_rt_zs) %>%
+  filter(!is.na(gdppc) & !is.na(natrent)) %>%
+  mutate(resid = residuals(lm(eci ~ gdppc + natrent))) %>%
+  rename(eci_controlled = resid) %>%
+  left_join(coi %>%
+              as.table() %>%
+              as.data.frame() %>%
+              as_tibble() %>%
+              rename(country=Var1,
+                     coi=Freq),
+            by="country") %>%
+  mutate(coi_norm = (coi-mean(coi))/sd(coi))
+
+df_rocksong %>%
+  mutate(peru = ifelse(country=="PER",1,0)) %>%
+  ggplot(aes(x=eci_controlled,y=atl_sitc_coi,color=as.factor(peru))) +
+  geom_text(aes(label=country)) +
+  theme_classic() +
+  theme(legend.position="none") +
+  scale_color_manual(values=c("gray","red"))
 
 
 ##   Question 6: Are Your Monkeys Jumping?
