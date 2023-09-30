@@ -1,3 +1,9 @@
+library(tidyverse)
+library(readxl)
+library(haven)
+library(ggplot2)
+library(economiccomplexity)
+
 ## Question 1: Definitions
 # Define the following seven terms in your own words and describe how they relate to one another: RCA, Diversity, Average Ubiquity, ECI, PCI, Proximity, Density, COI and COG. 
 # 
@@ -6,10 +12,20 @@
 ## Question 2: Examine Your Country
 # Choose a country for the rest of the problem set. Browse your country’s data in the Explore and Country Profile functionalities of the Atlas. If your country has a city in the Metroverse, please include information from one city in the Metroverse. Write a paragraph (200 words most) on your country’s export basket, its trade partners, the evolution of its comparative advantages and its complexity profile. Do not simply copy the automatically generated text in the Country Profile.
 # 
+countryname <- "Peru"
+countryiso <- "PER"
+
+dev309 <- read_dta("Dev309_Database.dta")
+
+Database_Codebook <- read_excel("Database_Codebook.xlsx") %>% 
+  filter(is.na(`Variable Name`) == F)
+
+perdev <- dev309 %>% 
+  filter(wb_countryname == countryname,
+         year > 1970)
 
 
-
-## Question 3: Browse your Country’s Data
+# Question 3: Browse your Country’s Data
 # Use the same country as in Question 2. Using the statistical package of your choice, generate a list of the following:
 #   •	10 Largest Products by Export Value
 # •	10 Products with Highest RCA
