@@ -1,0 +1,5 @@
+# Input Data File
+/input/
+
+# Mac system files
+.DS_Store
