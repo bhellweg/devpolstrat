@@ -127,6 +127,12 @@ cog <- co$complexity_outlook_gain
 # •	10 Products with Highest Global market share
 # •	10 Products with Highest PCI
 # 
+## Pick Year
+yr <- 2019
+
+## Loading Data
+
+sitc_data <- read_dta("dataverse_files/sitc_product.dta")
 
 df <- read_dta("dataverse_files/country_sitcproduct4digit_year.dta") %>% 
   join(.,sitc_data,by = "sitc_product_code") %>% select(-2) %>% 
@@ -138,6 +144,7 @@ df_exp <- df %>%
 df_peru <- df_exp %>% 
   filter(location_code == countryISO)
 
+# perform calculations
 largest_exports <- df_peru %>% arrange(.,desc(export_value)) %>% head(.,10) %>% 
   select(sitc_product_name_short_en,export_value)
 
@@ -153,11 +160,44 @@ highest_share <- df_peru %>% arrange(.,desc(market_percent)) %>% head(.,10) %>%
 highest_PCI <- df_peru %>% arrange(.,desc(pci)) %>% head(.,10) %>% 
   select(sitc_product_name_short_en,pci)
 
+#answers
+largest_exports
+highest_RCA
+highest_share
+highest_PCI
 
 ## Question 4: Diversity, Ubiquity, and Complexity
 # Create scatter plots of diversity vs. average ubiquity in your country’s most recent year of complete data, as well as diversity vs. ECI for the same year. What do you observe? How does your country rank vis-à-vis other countries? What does this mean?
-#   
+#
 
+#create data values
+products_status <- df_exp %>% mutate(status = ifelse(export_value>0,1,0))
+ubiquity_code <- products_status %>% group_by(sitc_product_code) %>% summarise(ubiquity = mean(status))
+diversity_code <- products_status %>% group_by(location_code) %>% summarise(diversity = sum(status))
+df_exp <- df_exp %>% left_join(.,ubiquity_code,by = "sitc_product_code") %>% left_join(.,diversity_code,by = "location_code")
+df_plot <- df_exp %>% filter(export_value>0, location_code != "ANS") %>% group_by(location_code) %>% summarise(diversity = mean(diversity),ubiquity = mean(ubiquity))
+
+# Create a color variable to differentiate Peru from other countries
+df_plot$color <- ifelse(df_plot$location_code == "PER", "red", "darkgrey")
+
+#plot 1
+ggplot(df_plot, aes(x = diversity, y = ubiquity, color = color, label = location_code)) +
+  geom_point() +
+  scale_color_identity() +
+  labs(x = "Diversity", y = "Ubiquity",title = "Diversity vs. Ubiquity for Countries") +
+  geom_text(hjust = 0, vjust = 0, size = 3) +
+  theme_minimal()
+
+#plot 2
+df_plot2 <- df_exp %>% filter(export_value>0, location_code != "ANS") %>% group_by(location_code) %>% summarise(diversity = mean(diversity),eci = mean(sitc_eci))
+df_plot2$color <- ifelse(df_plot$location_code == "PER", "red", "darkgrey")
+
+ggplot(df_plot2, aes(x = diversity, y = eci, color = color, label = location_code)) +
+  geom_point() +
+  scale_color_identity() +
+  labs(x = "Diversity", y = "ECI",title = "Diversity vs. ECI for Countries") +
+  geom_text(hjust = 0, vjust = 0, size = 3) +
+  theme_minimal()
 
 ##   Question 5: Your Country’s Strategic Position
 # Reproduce the “rock song chart” (COI vs. ECI controlling for Natural Resource exports/rents and GDP per capita). What’s the position of your country in the chart? What does this say about the policy stance that the country should take on the matter of economic development strategy?
