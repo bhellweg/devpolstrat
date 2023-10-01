@@ -7,6 +7,7 @@ packages <- c(
   'dplyr',
   'janitor', #clean names
   'tidyr', #reshaping
+  'readxl',
   #FOR EXPORTING AND IMPORTING
   'foreign',
   'haven',
@@ -46,18 +47,28 @@ if(length(to_install)>0) install.packages(to_install,
                                           repos='http://cran.us.r-project.org')
 lapply(packages, require, character.only=TRUE)
 
+countryname <- "Peru"
+countryiso <- "PER"
+
+dev309 <- read_dta("Dev309_Database.dta")
+products <- read_dta("dataverse_files/country_partner_sitcproduct2digit_year.dta")
+
+Database_Codebook <- read_excel("Database_Codebook.xlsx") %>% 
+  filter(is.na(`Variable Name`) == F)
+
+perdev <- dev309 %>% 
+  filter(wb_countryname == countryname,
+         year > 1970)
 
 ## Pick Year
 yr <- 2019
 
 ## Loading Data
-#df <- read_dta("input/country_sitcproduct4digit_year.dta")
 
-#database <- read_dta("input/DEV309_Database.dta")
+sitc_data <- read_dta("dataverse_files/sitc_product.dta")
 
-df_exp <- df %>%
-  filter(year==yr) %>%
-  select(location_code, sitc_product_code, export_value)
+
+
 
 # # Constructing RCA matrix
 # df_rca <- df %>%
@@ -106,17 +117,7 @@ cog <- co$complexity_outlook_gain
 ## Question 2: Examine Your Country
 # Choose a country for the rest of the problem set. Browse your country’s data in the Explore and Country Profile functionalities of the Atlas. If your country has a city in the Metroverse, please include information from one city in the Metroverse. Write a paragraph (200 words most) on your country’s export basket, its trade partners, the evolution of its comparative advantages and its complexity profile. Do not simply copy the automatically generated text in the Country Profile.
 # 
-countryname <- "Peru"
-countryiso <- "PER"
 
-dev309 <- read_dta("Dev309_Database.dta")
-
-Database_Codebook <- read_excel("Database_Codebook.xlsx") %>% 
-  filter(is.na(`Variable Name`) == F)
-
-perdev <- dev309 %>% 
-  filter(wb_countryname == countryname,
-         year > 1970)
 
 
 # Question 3: Browse your Country’s Data
@@ -126,6 +127,31 @@ perdev <- dev309 %>%
 # •	10 Products with Highest Global market share
 # •	10 Products with Highest PCI
 # 
+
+df <- read_dta("dataverse_files/country_sitcproduct4digit_year.dta") %>% 
+  join(.,sitc_data,by = "sitc_product_code") %>% select(-2) %>% 
+  filter(level == "4digit")
+
+df_exp <- df %>%
+  filter(year==yr) 
+
+df_peru <- df_exp %>% 
+  filter(location_code == countryISO)
+
+largest_exports <- df_peru %>% arrange(.,desc(export_value)) %>% head(.,10) %>% 
+  select(sitc_product_name_short_en,export_value)
+
+highest_RCA <- df_peru %>% arrange(.,desc(export_rca)) %>% head(.,10) %>% 
+  select(sitc_product_name_short_en,export_rca)
+
+market_share <- df_exp %>% group_by(sitc_product_code) %>% summarise(global_export = sum(export_value))
+df_peru <- join(df_peru,market_share,by = "sitc_product_code") 
+df_peru <- df_peru %>% mutate(market_percent = export_value/global_export)
+highest_share <- df_peru %>% arrange(.,desc(market_percent)) %>% head(.,10) %>% 
+  select(sitc_product_name_short_en,market_percent)
+
+highest_PCI <- df_peru %>% arrange(.,desc(pci)) %>% head(.,10) %>% 
+  select(sitc_product_name_short_en,pci)
 
 
 ## Question 4: Diversity, Ubiquity, and Complexity
