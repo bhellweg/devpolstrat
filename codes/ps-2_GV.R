@@ -55,14 +55,14 @@ lapply(packages, require, character.only=TRUE)
 ## Setting basic parameters -----------------------------------------------------------------------------------------
 countryname <- "Peru"
 countryiso <- "PER"
-yr <- 2019
+yr <- 2021
 
 rca_thres <- 1
 
 
 ## Loading datasets -------------------------------------------------------------------------------------------------
-# database <- read_dta("input/Dev309_Database.dta")
-# df <- read_dta("input/country_sitcproduct4digit_year.dta")
+database <- read_dta("input/Dev309_Database.dta")
+df <- read_dta("input/country_sitcproduct4digit_year.dta")
 
 top50_2016 <- database %>%
   filter(year==2016) %>%
@@ -99,12 +99,15 @@ highest_rca <- df_peru %>% arrange(.,desc(export_rca)) %>% head(.,10) %>%
   select(sitc_product_name_short_en,export_rca)
 
 market_share <- df_exp %>% group_by(sitc_product_code) %>% summarise(global_export = sum(export_value))
-df_peru <- df_peru %>% left_join(market_share,by = "sitc_product_code") 
-df_peru <- df_peru %>% mutate(market_percent = export_value/global_export)
-highest_share <- df_peru %>% arrange(.,desc(market_percent)) %>% head(.,10) %>% 
+
+df_peru1 <- df_peru %>%
+  left_join(market_share,by = "sitc_product_code") %>%
+  mutate(market_percent = export_value/global_export)
+
+highest_share <- df_peru1 %>% arrange(.,desc(market_percent)) %>% head(.,10) %>% 
   select(sitc_product_name_short_en,market_percent)
 
-highest_pci<- df_peru %>% arrange(.,desc(pci)) %>% head(.,10) %>% 
+highest_pci<- df_peru1 %>% arrange(.,desc(pci)) %>% head(.,10) %>% 
   select(sitc_product_name_short_en,pci)
 
 largest_exports %>% write_csv("output/largest_exports.csv")
@@ -133,6 +136,7 @@ df_exp %>%
   summarise(diversity = mean(diversity),ubiquity = mean(ubiquity)) %>%
   mutate(color = ifelse(location_code == "PER", "red", "darkgrey")) %>%
   ggplot(aes(x = diversity, y = ubiquity, color = color, label = location_code)) +
+  geom_smooth(method=lm, se=FALSE, color="black", linewidth=0.2) +
   #geom_point() +
   scale_color_identity() +
   labs(x = "Diversity", y = "Average Ubiquity of RCA>1 Products",
@@ -148,7 +152,8 @@ df_exp %>%
   summarise(diversity = mean(diversity),eci = mean(sitc_eci)) %>%
   mutate(color = ifelse(location_code == "PER", "red", "darkgrey")) %>%
   ggplot(aes(x = diversity, y = eci, color = color, label = location_code)) +
-  geom_point() +
+  geom_smooth(method=lm, se=FALSE, color="black", linewidth=0.2) +
+  #geom_point() +
   scale_color_identity() +
   labs(x = "Diversity", y = "ECI",title = paste0("Diversity vs. ECI for Countries, ",yr)) +
   geom_text(hjust = 0, vjust = 0, size = 3) +
@@ -211,7 +216,7 @@ df_rocksong %>%
   theme_classic() +
   theme(legend.position="none") +
   scale_color_manual(values=c("gray","red")) +
-  geom_vline(xintercept=1.5) +
+  geom_vline(xintercept=0) +
   geom_hline(yintercept=0) +
   xlab("ECI controlled for GDP per Capita and Natural Resource Rents") +
   ylab("COI")
@@ -255,6 +260,15 @@ df_monkeyjump <- df_rca_gross %>%
               select(country, atl_sitc_eci,atl_sitc_coi),
             by="country") %>%
   add_predictions(lm(new_prod ~ atl_sitc_eci + atl_sitc_coi, data=.))
+
+df_rca_gross %>%
+  rename(country=location_code) %>%
+  left_join(database %>%
+              filter(year==yr1) %>%
+              rename(country=countrycodeiso) %>%
+              select(country, atl_sitc_eci,atl_sitc_coi),
+            by="country") %>%
+  lm(new_prod ~ atl_sitc_eci + atl_sitc_coi, data=.)
 
 #Plotting
 df_monkeyjump %>%
